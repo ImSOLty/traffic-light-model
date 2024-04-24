@@ -4,9 +4,7 @@ typedef Direction {
 	bool should_be_open = 0;
 };
 Direction directions[6];
-
 // Checks
-
 // Safety: Always (if direction is open then conflicting one is open) is False
 ltl safety0 { [] ! (directions[0].open && (directions[1].open || directions[2].open || directions[3].open || directions[4].open || directions[5].open))}
 ltl safety1 { [] ! (directions[1].open && (directions[0].open || directions[2].open || directions[3].open || directions[4].open))}
@@ -14,15 +12,13 @@ ltl safety2 { [] ! (directions[2].open && (directions[0].open || directions[1].o
 ltl safety3 { [] ! (directions[3].open && (directions[0].open || directions[1].open || directions[5].open))}
 ltl safety4 { [] ! (directions[4].open && (directions[0].open || directions[1].open || directions[2].open))}
 ltl safety5 { [] ! (directions[5].open && (directions[0].open || directions[2].open || directions[3].open))}
-
 // Liveness: Always (if there are cars in direction and it is closed then later it will open) is True
-ltl liveness0 { [] (directions[0].cars_in_direction and !directions[0].open) -> <> (directions[0].open)}
-ltl liveness1 { [] (directions[1].cars_in_direction and !directions[1].open) -> <> (directions[1].open)}
-ltl liveness2 { [] (directions[2].cars_in_direction and !directions[2].open) -> <> (directions[2].open)}
-ltl liveness3 { [] (directions[3].cars_in_direction and !directions[3].open) -> <> (directions[3].open)}
-ltl liveness4 { [] (directions[4].cars_in_direction and !directions[4].open) -> <> (directions[4].open)}
-ltl liveness5 { [] (directions[5].cars_in_direction and !directions[5].open) -> <> (directions[5].open)}
-
+ltl liveness0 { [] (directions[0].cars_in_direction && !directions[0].open) -> <> (directions[0].open)}
+ltl liveness1 { [] (directions[1].cars_in_direction && !directions[1].open) -> <> (directions[1].open)}
+ltl liveness2 { [] (directions[2].cars_in_direction && !directions[2].open) -> <> (directions[2].open)}
+ltl liveness3 { [] (directions[3].cars_in_direction && !directions[3].open) -> <> (directions[3].open)}
+ltl liveness4 { [] (directions[4].cars_in_direction && !directions[4].open) -> <> (directions[4].open)}
+ltl liveness5 { [] (directions[5].cars_in_direction && !directions[5].open) -> <> (directions[5].open)}
 // Fairness: Always in the future either there won't be any cars either the direction will close
 ltl fairness0 { [] (<> (! (directions[0].open && directions[0].cars_in_direction)))}
 ltl fairness1 { [] (<> (! (directions[1].open && directions[1].cars_in_direction)))}
@@ -30,7 +26,6 @@ ltl fairness2 { [] (<> (! (directions[2].open && directions[2].cars_in_direction
 ltl fairness3 { [] (<> (! (directions[3].open && directions[3].cars_in_direction)))}
 ltl fairness4 { [] (<> (! (directions[4].open && directions[4].cars_in_direction)))}
 ltl fairness5 { [] (<> (! (directions[5].open && directions[5].cars_in_direction)))}
-
 // Process that adds new cards to any empty direction
 proctype AddCarsToDirection() {
 	do
@@ -57,7 +52,7 @@ proctype ControlDirection(int id) {
 	// If there are any cars in direction && it should be open && it is not open && all conflict directions[0] are closed -> set as open
 	:: directions[id].cars_in_direction == 1 &&
        directions[id].should_be_open == 1 &&
-		!directions[id].open &&
+	!directions[id].open &&
 		((id == 0 && !directions[1].open && !directions[2].open && !directions[3].open && !directions[4].open && !directions[5].open) ||
 		(id == 1 && !directions[0].open && !directions[2].open && !directions[3].open && !directions[4].open) || 
 		(id == 2 && !directions[0].open && !directions[1].open && !directions[4].open && !directions[5].open) || 
