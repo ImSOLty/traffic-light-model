@@ -44,16 +44,15 @@ proctype ControlDirection(Direction direction) {
 	do
 	// If there are any cars in direction && it should be opened && all conflict directions are closed -> set as opened
 	:: direction.cars_in_direction == 1 &&
-       direction.should_be_opened == 1 -> atomic {
-		do
-		::direction.id == 0 && !WN.opened && !SD.opened && !ED.opened && !DE.opened && !DN.opened -> direction.opened = 1;
-		::direction.id == 1 && !NS.opened && !SD.opened && !ED.opened && !DE.opened -> direction.opened = 1;
-		::direction.id == 2 && !NS.opened && !WN.opened && !DE.opened && !DN.opened -> direction.opened = 1;
-		::direction.id == 3 && !NS.opened && !WN.opened && !DN.opened -> direction.opened = 1;
-		::direction.id == 4 && !NS.opened && !WN.opened && !SD.opened -> direction.opened = 1;
-		::direction.id == 5 && !NS.opened && !SD.opened && !ED.opened -> direction.opened = 1;
-		od
-	}
+       direction.should_be_opened == 1 &&
+		direction.id == 0 && !WN.opened && !SD.opened && !ED.opened && !DE.opened && !DN.opened ||
+		direction.id == 1 && !NS.opened && !SD.opened && !ED.opened && !DE.opened || 
+		direction.id == 2 && !NS.opened && !WN.opened && !DE.opened && !DN.opened || 
+		direction.id == 3 && !NS.opened && !WN.opened && !DN.opened || 
+		direction.id == 4 && !NS.opened && !WN.opened && !SD.opened || 
+		direction.id == 5 && !NS.opened && !SD.opened && !ED.opened -> {
+			direction.opened = 1;
+		}
 	// If there are any cars in direction && it should be opened && it is opened -> remove cars and set as should not be opened
 	:: direction.cars_in_direction == 1 &&
        direction.should_be_opened == 1 &&
