@@ -25,18 +25,10 @@ proctype AddCarsToDirection() {
 // Process that marks all the directions as should_be_opened
 proctype MarkAsShouldBeopened() {
     do
-    :: !NS.should_be_opened &&
-       !WN.should_be_opened &&
-       !SD.should_be_opened &&
-       !ED.should_be_opened &&
-       !DE.should_be_opened &&
-       !DN.should_be_opened -> {
-           NS.should_be_opened = 1;
-           WN.should_be_opened = 1;
-           SD.should_be_opened = 1;
-           ED.should_be_opened = 1;
-           DE.should_be_opened = 1;
-           DN.should_be_opened = 1;
+    :: !NS.should_be_opened && !WN.should_be_opened && !SD.should_be_opened &&       
+	!ED.should_be_opened && !DE.should_be_opened && !DN.should_be_opened -> {
+           NS.should_be_opened = 1; WN.should_be_opened = 1; SD.should_be_opened = 1;
+           ED.should_be_opened = 1; DE.should_be_opened = 1; DN.should_be_opened = 1;
        }
     od
 }
