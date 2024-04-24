@@ -1,79 +1,69 @@
-// NS WN SD ED DE DN
 typedef Direction {
 	bool cars_in_direction = 0;
 	bool opened = 0;
 	bool should_be_opened = 0;
-	byte id;
 };
-Direction NS;
-Direction WN;
-Direction SD;
-Direction ED;
-Direction DE;
-Direction DN;
+Direction directions[6];
 // Process that adds new cards to any empty direction
 proctype AddCarsToDirection() {
 	do
-	:: !NS.cars_in_direction -> NS.cars_in_direction = 1;
-	:: !WN.cars_in_direction -> WN.cars_in_direction = 1;
-	:: !SD.cars_in_direction -> SD.cars_in_direction = 1;
-	:: !ED.cars_in_direction -> ED.cars_in_direction = 1;
-	:: !DE.cars_in_direction -> DE.cars_in_direction = 1;
-	:: !DN.cars_in_direction -> DN.cars_in_direction = 1;
+	:: !directions[0].cars_in_direction -> directions[0].cars_in_direction = 1; printf("Added cars to NS")
+	:: !directions[1].cars_in_direction -> directions[1].cars_in_direction = 1; printf("Added cars to WN")
+	:: !directions[2].cars_in_direction -> directions[2].cars_in_direction = 1; printf("Added cars to SD")
+	:: !directions[3].cars_in_direction -> directions[3].cars_in_direction = 1; printf("Added cars to ED")
+	:: !directions[4].cars_in_direction -> directions[4].cars_in_direction = 1; printf("Added cars to DE")
+	:: !directions[5].cars_in_direction -> directions[5].cars_in_direction = 1; printf("Added cars to DN")
 	od
 }
-// Process that marks all the directions as should_be_opened
+// Process that marks all the directiodirections[0] as should_be_opened
 proctype MarkAsShouldBeopened() {
     do
-    :: !NS.should_be_opened && !WN.should_be_opened && !SD.should_be_opened &&       
-	!ED.should_be_opened && !DE.should_be_opened && !DN.should_be_opened -> {
-           NS.should_be_opened = 1; WN.should_be_opened = 1; SD.should_be_opened = 1;
-           ED.should_be_opened = 1; DE.should_be_opened = 1; DN.should_be_opened = 1;
+    :: !directions[0].should_be_opened && !directions[1].should_be_opened && !directions[2].should_be_opened &&       
+	!directions[3].should_be_opened && !directions[4].should_be_opened && !directions[5].should_be_opened -> {
+           directions[0].should_be_opened = 1; directions[1].should_be_opened = 1; directions[2].should_be_opened = 1;
+           directions[3].should_be_opened = 1; directions[4].should_be_opened = 1; directions[5].should_be_opened = 1;
        }
     od
 }
-proctype ControlDirection(Direction direction) {
+proctype ControlDirection(int id) {
 	do
-	// If there are any cars in direction && it should be opened && all conflict directions are closed -> set as opened
-	:: direction.cars_in_direction == 1 &&
-       direction.should_be_opened == 1 &&
-		direction.id == 0 && !WN.opened && !SD.opened && !ED.opened && !DE.opened && !DN.opened ||
-		direction.id == 1 && !NS.opened && !SD.opened && !ED.opened && !DE.opened || 
-		direction.id == 2 && !NS.opened && !WN.opened && !DE.opened && !DN.opened || 
-		direction.id == 3 && !NS.opened && !WN.opened && !DN.opened || 
-		direction.id == 4 && !NS.opened && !WN.opened && !SD.opened || 
-		direction.id == 5 && !NS.opened && !SD.opened && !ED.opened -> {
-			direction.opened = 1;
+	// If there are any cars in direction && it should be opened && all conflict directiodirections[0] are closed -> set as opened
+	:: directions[id].cars_in_direction == 1 &&
+       directions[id].should_be_opened == 1 &&
+		((id == 0 && !directions[1].opened && !directions[2].opened && !directions[3].opened && !directions[4].opened && !directions[5].opened) ||
+		(id == 1 && !directions[0].opened && !directions[2].opened && !directions[3].opened && !directions[4].opened) || 
+		(id == 2 && !directions[0].opened && !directions[1].opened && !directions[4].opened && !directions[5].opened) || 
+		(id == 3 && !directions[0].opened && !directions[1].opened && !directions[5].opened) || 
+		(id == 4 && !directions[0].opened && !directions[1].opened && !directions[2].opened) || 
+		(id == 5 && !directions[0].opened && !directions[2].opened && !directions[3].opened)) -> {
+			directions[id].opened = 1;
 		}
 	// If there are any cars in direction && it should be opened && it is opened -> remove cars and set as should not be opened
-	:: direction.cars_in_direction == 1 &&
-       direction.should_be_opened == 1 &&
-       direction.opened == 1 -> {
-           direction.cars_in_direction = 0;
-		   direction.should_be_opened = 0;
+	:: directions[id].cars_in_direction == 1 &&
+       directions[id].should_be_opened == 1 &&
+       directions[id].opened == 1 -> {
+           directions[id].cars_in_direction = 0;
+		   directions[id].should_be_opened = 0;
 	   }
 	// If direction should not be opened but opened -> close it
-	:: direction.should_be_opened == 0 &&
-       direction.opened == 1 -> {
-           direction.opened = 0;	
+	:: directions[id].should_be_opened == 0 &&
+       directions[id].opened == 1 -> {
+           directions[id].opened = 0;	
 	   }
 	// If direction should be opened but there is no cars and it is closed -> direction should not be opened
-	:: direction.should_be_opened == 1 &&
-       direction.opened == 0 &&
-       direction.cars_in_direction == 0 -> {
-           direction.should_be_opened = 0;
+	:: directions[id].should_be_opened == 1 &&
+       directions[id].opened == 0 &&
+       directions[id].cars_in_direction == 0 -> {
+           directions[id].should_be_opened = 0;
 	   }
 	od
 }
 init {
-	NS.id = 0; WN.id = 1; SD.id = 2; ED.id = 3; DE.id = 4; DN.id = 5;
 	atomic {
-		run ControlDirection(NS);
-		run ControlDirection(WN);
-		run ControlDirection(SD);
-		run ControlDirection(ED);
-		run ControlDirection(DE);
-		run ControlDirection(DN);
+		byte i;
+		for (i : 0..5){
+			run ControlDirection(i);
+		}
 		
 		run AddCarsToDirection();
 		run MarkAsShouldBeopened();
