@@ -12,6 +12,10 @@ Conflicting directions:
 Blue dots representing conflicts defined by a task conditions, red dots representing conflicts that should be resolved as well, but weren't mentioned in conditions.
 
 ## Requirements to be verified
-* Liveness
-* Safety
-* Fairness
+$DIR$ is the direction, requirement refers to
+
+$DIRC_n$ is the nth direction competing with $DIR$ direction
+
+* Liveness: $G\overline{(DIR.open \\&\\& (DIRC_1.open || DIRC_2.open || ... || DIRC_n.open))}$
+* Safety: $G((DIR.cars \\&\\& \overline{DIR.open}) -> F(DIR.open))$
+* Fairness: $GF\overline{(DIR.open \\&\\& DIR.cars)}$
