@@ -23,3 +23,5 @@ $DIRC_n$ is the nth direction competing with $DIR$ direction
 * Liveness: $G\overline{(DIR.open \\&\\& (DIRC_1.open || DIRC_2.open || ... || DIRC_n.open))}$
 * Safety: $G((DIR.cars \\&\\& \overline{DIR.open}) -> F(DIR.open))$
 * Fairness: $GF\overline{(DIR.open \\&\\& DIR.cars)}$
+
+Verification logs on NS-direction (as an example) are presented in [verification-logs.md](https://github.com/ImSOLty/traffic-light-model/blob/d737d44221b9f20f413988df15e6f09419498b39/verification-logs.md) file
