@@ -1,10 +1,12 @@
+#define PROCESSES_NUM 6
 typedef Direction {
 	bool cars_in_direction = 0;
 	bool open = 0;
-	bool should_be_open_next = 0;
+	bool completed = 1;
 };
+byte COMPLETED_MARKER = PROCESSES_NUM
 //NS WN SD ED DE DN
-Direction directions[6];
+Direction directions[PROCESSES_NUM];
 // Checks
 // Safety: Always (if direction is open then conflicting one is open) is False
 ltl safety0 { [] ! (directions[0].open && (directions[1].open || directions[2].open || directions[3].open || directions[4].open || directions[5].open))}
@@ -27,76 +29,69 @@ ltl fairness2 { [] (<> (! (directions[2].open && directions[2].cars_in_direction
 ltl fairness3 { [] (<> (! (directions[3].open && directions[3].cars_in_direction)))}
 ltl fairness4 { [] (<> (! (directions[4].open && directions[4].cars_in_direction)))}
 ltl fairness5 { [] (<> (! (directions[5].open && directions[5].cars_in_direction)))}
-// Process that adds new cards to any empty direction
+// Process that adds new cars to any empty direction
 proctype AddCarsToDirection() {
 	do
-	:: !directions[0].cars_in_direction -> atomic {directions[0].cars_in_direction = 1; printf("Added cars to 0 direction: NS\n")}
-	:: !directions[1].cars_in_direction -> atomic {directions[1].cars_in_direction = 1; printf("Added cars to 1 direction: WN\n")}
-	:: !directions[2].cars_in_direction -> atomic {directions[2].cars_in_direction = 1; printf("Added cars to 2 direction: SD\n")}
-	:: !directions[3].cars_in_direction -> atomic {directions[3].cars_in_direction = 1; printf("Added cars to 3 direction: ED\n")}
-	:: !directions[4].cars_in_direction -> atomic {directions[4].cars_in_direction = 1; printf("Added cars to 4 direction: DE\n")}
-	:: !directions[5].cars_in_direction -> atomic {directions[5].cars_in_direction = 1; printf("Added cars to 5 direction: DN\n")}
+	:: !directions[0].cars_in_direction -> {directions[0].cars_in_direction = 1;}
+	:: !directions[1].cars_in_direction -> {directions[1].cars_in_direction = 1;}
+	:: !directions[2].cars_in_direction -> {directions[2].cars_in_direction = 1;}
+	:: !directions[3].cars_in_direction -> {directions[3].cars_in_direction = 1;}
+	:: !directions[4].cars_in_direction -> {directions[4].cars_in_direction = 1;}
+	:: !directions[5].cars_in_direction -> {directions[5].cars_in_direction = 1;}
 	od
 }
-// Process that marks all the directions[0] as should_be_open_next
-proctype MarkAsShouldBeOpenNext() {
+// Process that marks all the directions as not completed
+proctype MarkAsNotCompleted() {
     do
-    :: !directions[0].should_be_open_next && !directions[1].should_be_open_next && !directions[2].should_be_open_next &&       
-	!directions[3].should_be_open_next && !directions[4].should_be_open_next && !directions[5].should_be_open_next -> {
-           directions[0].should_be_open_next = 1; directions[1].should_be_open_next = 1; directions[2].should_be_open_next = 1;
-           directions[3].should_be_open_next = 1; directions[4].should_be_open_next = 1; directions[5].should_be_open_next = 1;
+    :: COMPLETED_MARKER == PROCESSES_NUM -> {
+		COMPLETED_MARKER = 0;
+           directions[0].completed = 0; directions[1].completed = 0; directions[2].completed = 0;
+           directions[3].completed = 0; directions[4].completed = 0; directions[5].completed = 0;
        }
     od
 }
 proctype ControlDirection(int id) {
 	do
-	// If there are any cars in direction && it should be open && it is not open && all conflict directions[0] are closed -> set as open
-	:: directions[id].cars_in_direction == 1 && directions[id].should_be_open_next == 1 && !directions[id].open &&
+	// If there are any cars in direction && it is not completed && it is not open && all conflict directions are closed -> set as open
+	:: directions[id].cars_in_direction && !directions[id].completed && !directions[id].open &&
 		((id == 0 && !directions[1].open && !directions[2].open && !directions[3].open && !directions[4].open && !directions[5].open) ||
 		(id == 1 && !directions[0].open && !directions[2].open && !directions[3].open && !directions[4].open) || 
 		(id == 2 && !directions[0].open && !directions[1].open && !directions[4].open && !directions[5].open) || 
 		(id == 3 && !directions[0].open && !directions[1].open && !directions[5].open) || 
 		(id == 4 && !directions[0].open && !directions[1].open && !directions[2].open) || 
-		(id == 5 && !directions[0].open && !directions[2].open && !directions[3].open)) -> atomic {
+		(id == 5 && !directions[0].open && !directions[2].open && !directions[3].open)) -> {
 			directions[id].open = ((id == 0 && !directions[1].open && !directions[2].open && !directions[3].open && !directions[4].open && !directions[5].open) ||
 				(id == 1 && !directions[0].open && !directions[2].open && !directions[3].open && !directions[4].open) || 
 				(id == 2 && !directions[0].open && !directions[1].open && !directions[4].open && !directions[5].open) || 
 				(id == 3 && !directions[0].open && !directions[1].open && !directions[5].open) || 
 				(id == 4 && !directions[0].open && !directions[1].open && !directions[2].open) || 
 				(id == 5 && !directions[0].open && !directions[2].open && !directions[3].open));
-			printf("Opened %d direction\n", id)
 		}
-	// If there are any cars in direction && it should be open && it is open -> remove cars and set as should not be open
-	:: directions[id].cars_in_direction == 1 &&
-       directions[id].should_be_open_next == 1 &&
-       directions[id].open == 1 -> atomic {
+	// If there are any cars in direction && it is not completed && it is open -> remove cars and set as completed
+	:: directions[id].cars_in_direction && !directions[id].completed && directions[id].open -> {
            directions[id].cars_in_direction = 0;
-		   directions[id].should_be_open_next = 0;
-		   printf("Removed cars from %d direction\n", id)
+		   directions[id].completed = 1;
+		   COMPLETED_MARKER = COMPLETED_MARKER + 1;
 	   }
-	// If direction should not be open but open -> close it
-	:: !directions[id].should_be_open_next &&
-       directions[id].open == 1 -> atomic {
-           directions[id].open = 0;
-		   printf("Close %d direction after opening\n", id)
-	   }
-	// If direction should be open but there is no cars and it is closed -> direction should not be open
-	:: directions[id].should_be_open_next == 1 &&
-       !directions[id].open &&
-       !directions[id].cars_in_direction -> atomic {
-           directions[id].should_be_open_next = 0;
-		   printf("Close %d direction because there are no cars inside\n", id)
+	// If direction is completed but open -> close it
+	:: directions[id].completed && directions[id].open -> {
+		directions[id].open = 0;
+	}
+	// If direction is not completed but there are no cars and it is closed -> mark direction as completed
+	:: !directions[id].completed && !directions[id].open && !directions[id].cars_in_direction -> {
+           directions[id].completed = 1;
+		   COMPLETED_MARKER = COMPLETED_MARKER + 1;
 	   }
 	od
 }
 init {
 	atomic {
 		byte i;
-		for (i : 0..5){
+		for (i : 0..(PROCESSES_NUM-1)){
 			run ControlDirection(i);
 		}
 		
 		run AddCarsToDirection();
-		run MarkAsShouldBeOpenNext();
+		run MarkAsNotCompleted();
 	}
 }
