@@ -22,7 +22,7 @@ Semaphore SD_DE, SD_DN;
 Semaphore ED_DN;
 byte COMPLETED_MARKER = PROCESSES_NUM
 Direction NS, WN, SD, ED, DE, DN;
-// Checks
+// LTL-Checks
 // Safety: Always (if direction is open then conflicting one is open) is False
 ltl safety0 { [] ! (NS.open && (WN.open || SD.open || ED.open || DE.open || DN.open))}
 ltl safety1 { [] ! (WN.open && (NS.open || SD.open || ED.open || DE.open))}
