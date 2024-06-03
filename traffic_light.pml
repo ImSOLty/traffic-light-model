@@ -6,15 +6,15 @@ typedef Direction {
 	byte conflicts = 0;
 };
 typedef QueueController{
-	byte queue[PROCESSES_NUM] = PROCESSES_NUM;
+	byte queue[PROCESSES_NUM];
 	byte tail = 0;
 	byte head = 0;
 }
-Direction directions[PROCESSES_NUM];
+Direction NS, WN, SD, ED, DE, DN;
 QueueController controller;
 inline pop_queue(){
 	atomic{
-		controller.queue[controller.head] = PROCESSES_NUM
+		controller.queue[controller.head] = 0;
 		if
 		:: controller.head == PROCESSES_NUM-1 -> controller.head = 0;
 		:: else -> controller.head++;
@@ -30,47 +30,95 @@ inline push_queue(id){
 		fi
 	}
 }
-inline direction_opened(id){
-	if
-	:: id == 0 -> { directions[1].conflicts++; directions[2].conflicts++; directions[3].conflicts++; directions[4].conflicts++; directions[5].conflicts++; }
-	:: id == 1 -> { directions[0].conflicts++; directions[2].conflicts++; directions[3].conflicts++; directions[4].conflicts++; }
-	:: id == 2 -> { directions[0].conflicts++; directions[1].conflicts++; directions[4].conflicts++; directions[5].conflicts++; }
-	:: id == 3 -> { directions[0].conflicts++; directions[1].conflicts++; directions[5].conflicts++; }
-	:: id == 4 -> { directions[0].conflicts++; directions[1].conflicts++; directions[2].conflicts++; }
-	:: id == 5 -> { directions[0].conflicts++; directions[2].conflicts++; directions[3].conflicts++; }
-	fi
-}
-inline direction_closed(id){
-	if
-	:: id == 0 -> { directions[1].conflicts--; directions[2].conflicts--; directions[3].conflicts--; directions[4].conflicts--; directions[5].conflicts--; }
-	:: id == 1 -> { directions[0].conflicts--; directions[2].conflicts--; directions[3].conflicts--; directions[4].conflicts--; }
-	:: id == 2 -> { directions[0].conflicts--; directions[1].conflicts--; directions[4].conflicts--; directions[5].conflicts--; }
-	:: id == 3 -> { directions[0].conflicts--; directions[1].conflicts--; directions[5].conflicts--; }
-	:: id == 4 -> { directions[0].conflicts--; directions[1].conflicts--; directions[2].conflicts--; }
-	:: id == 5 -> { directions[0].conflicts--; directions[2].conflicts--; directions[3].conflicts--; }
-	fi
-}
 proctype AddCarsToDirection() {
 	do
-	:: !directions[0].cars -> {push_queue(0); directions[0].cars = 1;}
-	:: !directions[1].cars -> {push_queue(1); directions[1].cars = 1;}
-	:: !directions[2].cars -> {push_queue(2); directions[2].cars = 1;}
-	:: !directions[3].cars -> {push_queue(3); directions[3].cars = 1;}
-	:: !directions[4].cars -> {push_queue(4); directions[4].cars = 1;}
-	:: !directions[5].cars -> {push_queue(5); directions[5].cars = 1;}
+	:: !NS.cars -> {push_queue(1); NS.cars = 1;}
+	:: !WN.cars -> {push_queue(2); WN.cars = 1;}
+	:: !SD.cars -> {push_queue(3); SD.cars = 1;}
+	:: !ED.cars -> {push_queue(4); ED.cars = 1;}
+	:: !DE.cars -> {push_queue(5); DE.cars = 1;}
+	:: !DN.cars -> {push_queue(6); DN.cars = 1;}
 	od
 }
-proctype ControlDirection(int id){
+proctype DirectionNS(){
 	do
-	:: directions[id].cars -> {
+	:: NS.cars -> {
 		if
-		::controller.queue[controller.head] == id && directions[id].conflicts == 0 -> {
-			direction_opened(id);
+		::controller.queue[controller.head] == 1 && !NS.conflicts -> {
+			WN.conflicts++; SD.conflicts++; ED.conflicts++; DE.conflicts++; DN.conflicts++;
 			pop_queue();
-			directions[id].open = 1;
-			directions[id].cars = 0;
-			directions[id].open = 0;
-			direction_closed(id)
+			NS.open = 1; NS.cars = 0; NS.open = 0;
+			WN.conflicts--; SD.conflicts--; ED.conflicts--; DE.conflicts--; DN.conflicts--;
+		}
+		fi
+	}
+	od
+}
+proctype DirectionWN(){
+	do
+	:: WN.cars -> {
+		if
+		::controller.queue[controller.head] == 2 && !WN.conflicts -> {
+			NS.conflicts++; SD.conflicts++; ED.conflicts++; DE.conflicts++;
+			pop_queue();
+			WN.open = 1; WN.cars = 0; WN.open = 0;
+			NS.conflicts--; SD.conflicts--; ED.conflicts--; DE.conflicts--;
+		}
+		fi
+	}
+	od
+}
+proctype DirectionSD(){
+	do
+	:: SD.cars -> {
+		if
+		::controller.queue[controller.head] == 3 && !SD.conflicts -> {
+			NS.conflicts++; WN.conflicts++; DE.conflicts++; DN.conflicts++;
+			pop_queue();
+			SD.open = 1; SD.cars = 0; SD.open = 0;
+			NS.conflicts--; WN.conflicts--; DE.conflicts--; DN.conflicts--;
+		}
+		fi
+	}
+	od
+}
+proctype DirectionED(){
+	do
+	:: ED.cars -> {
+		if
+		::controller.queue[controller.head] == 4 && !ED.conflicts -> {
+			NS.conflicts++; WN.conflicts++; DN.conflicts++;
+			pop_queue();
+			ED.open = 1; ED.cars = 0; ED.open = 0;
+			NS.conflicts--; WN.conflicts--; DN.conflicts--;
+		}
+		fi
+	}
+	od
+}
+proctype DirectionDE(){
+	do
+	:: DE.cars -> {
+		if
+		::controller.queue[controller.head] == 5 && !DE.conflicts -> {
+			NS.conflicts++; WN.conflicts++; SD.conflicts++;
+			pop_queue();
+			DE.open = 1; DE.cars = 0; DE.open = 0;
+			NS.conflicts--; WN.conflicts--; SD.conflicts--;
+		}
+		fi
+	}
+	od
+}
+proctype DirectionDN(){
+	do
+	:: DN.cars -> {
+		if
+		::controller.queue[controller.head] == 6 && !DN.conflicts -> {
+			NS.conflicts++; SD.conflicts++; ED.conflicts++;
+			pop_queue();
+			DN.open = 1; DN.cars = 0; DN.open = 0;
+			NS.conflicts--; SD.conflicts--; ED.conflicts--;
 		}
 		fi
 	}
@@ -78,32 +126,34 @@ proctype ControlDirection(int id){
 }
 init{
 	atomic {
-		byte i;
-		for (i : 0..(PROCESSES_NUM-1)){
-			run ControlDirection(i);
-		}
+		run DirectionNS();
+		run DirectionWN();
+		run DirectionSD();
+		run DirectionED();
+		run DirectionDE();
+		run DirectionDN();
 		run AddCarsToDirection()
 	}
 }
 // LTL-Checks
 // Safety: Always (if direction is open then conflicting one is open) is False
-ltl safety0 { [] ! (directions[0].open && (directions[1].open || directions[2].open || directions[3].open || directions[4].open || directions[5].open))}
-ltl safety1 { [] ! (directions[1].open && (directions[0].open || directions[2].open || directions[3].open || directions[4].open))}
-ltl safety2 { [] ! (directions[2].open && (directions[0].open || directions[1].open || directions[4].open || directions[5].open))}
-ltl safety3 { [] ! (directions[3].open && (directions[0].open || directions[1].open || directions[5].open))}
-ltl safety4 { [] ! (directions[4].open && (directions[0].open || directions[1].open || directions[2].open))}
-ltl safety5 { [] ! (directions[5].open && (directions[0].open || directions[2].open || directions[3].open))}
+ltl safety0 { [] ! (NS.open && (WN.open || SD.open || ED.open || DE.open || DN.open))}
+ltl safety1 { [] ! (WN.open && (NS.open || SD.open || ED.open || DE.open))}
+ltl safety2 { [] ! (SD.open && (NS.open || WN.open || DE.open || DN.open))}
+ltl safety3 { [] ! (ED.open && (NS.open || WN.open || DN.open))}
+ltl safety4 { [] ! (DE.open && (NS.open || WN.open || SD.open))}
+ltl safety5 { [] ! (DN.open && (NS.open || SD.open || ED.open))}
 // Liveness: Always (if there are cars in direction and it is closed then later it will open) is True
-ltl liveness0 { [] ((directions[0].cars && !directions[0].open) -> <> (directions[0].open))}
-ltl liveness1 { [] ((directions[2].cars && !directions[1].open) -> <> (directions[1].open))}
-ltl liveness2 { [] ((directions[2].cars && !directions[2].open) -> <> (directions[2].open))}
-ltl liveness3 { [] ((directions[3].cars && !directions[3].open) -> <> (directions[3].open))}
-ltl liveness4 { [] ((directions[4].cars && !directions[4].open) -> <> (directions[4].open))}
-ltl liveness5 { [] ((directions[5].cars && !directions[5].open) -> <> (directions[5].open))}
+ltl liveness0 { [] ((NS.cars && !NS.open) -> <> (NS.open))}
+ltl liveness1 { [] ((SD.cars && !WN.open) -> <> (WN.open))}
+ltl liveness2 { [] ((SD.cars && !SD.open) -> <> (SD.open))}
+ltl liveness3 { [] ((ED.cars && !ED.open) -> <> (ED.open))}
+ltl liveness4 { [] ((DE.cars && !DE.open) -> <> (DE.open))}
+ltl liveness5 { [] ((DN.cars && !DN.open) -> <> (DN.open))}
 // Fairness: Always in the future either there won't be any cars either the direction will close
-ltl fairness0 { [] (<> (! (directions[0].open && directions[0].cars)))}
-ltl fairness1 { [] (<> (! (directions[1].open && directions[2].cars)))}
-ltl fairness2 { [] (<> (! (directions[2].open && directions[2].cars)))}
-ltl fairness3 { [] (<> (! (directions[3].open && directions[3].cars)))}
-ltl fairness4 { [] (<> (! (directions[4].open && directions[4].cars)))}
-ltl fairness5 { [] (<> (! (directions[5].open && directions[5].cars)))}
+ltl fairness0 { [] (<> (! (NS.open && NS.cars)))}
+ltl fairness1 { [] (<> (! (WN.open && SD.cars)))}
+ltl fairness2 { [] (<> (! (SD.open && SD.cars)))}
+ltl fairness3 { [] (<> (! (ED.open && ED.cars)))}
+ltl fairness4 { [] (<> (! (DE.open && DE.cars)))}
+ltl fairness5 { [] (<> (! (DN.open && DN.cars)))}
